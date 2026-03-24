@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketing Weekly Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f0;color:#1a1a18;padding:2rem}
+.dash{max-width:1200px;margin:0 auto}
+.week-nav{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem}
+.week-label{font-size:13px;color:#888780;flex:1}
+.week-display{font-size:15px;font-weight:500;color:#1a1a18}
+.nav-btn{background:none;border:0.5px solid #b4b2a9;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:13px;color:#888780}
+.nav-btn:hover{background:#e8e6e0}
+.offerings-tabs{display:flex;gap:6px;margin-bottom:1.5rem;flex-wrap:wrap}
+.tab{padding:6px 14px;border-radius:20px;border:0.5px solid #d3d1c7;font-size:13px;cursor:pointer;color:#888780;background:#fff}
+.tab.active{color:#fff}
+.tab:hover:not(.active){background:#f1efe8}
+.section-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:12px}
+.activity-card{background:#fff;border:0.5px solid #d3d1c7;border-radius:12px;padding:1rem 1.25rem}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.card-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:#f1efe8}
+.card-title{font-size:13px;font-weight:500;color:#1a1a18}
+.card-subtitle{font-size:11px;color:#888780}
+.metrics-row{display:flex;gap:8px;margin-bottom:12px}
+.metric{flex:1;background:#f1efe8;border-radius:8px;padding:8px 10px}
+.metric-label{font-size:11px;color:#888780;margin-bottom:2px}
+.metric-value{font-size:18px;font-weight:500;color:#1a1a18}
+.entry-section{margin-bottom:8px}
+.entry-label{font-size:11px;font-weight:500;color:#888780;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px}
+.entry-list{display:flex;flex-direction:column;gap:4px}
+.entry-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:#f1efe8;font-size:12px;color:#1a1a18}
+.entry-item input[type=text]{border:none;background:none;flex:1;font-size:12px;color:#1a1a18;outline:none;font-family:inherit}
+.entry-item input[type=text]::placeholder{color:#b4b2a9}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.s-done{background:#1D9E75}
+.s-progress{background:#EF9F27}
+.s-plan{background:#888780}
+.add-btn{font-size:12px;color:#185FA5;border:none;background:none;cursor:pointer;padding:4px 0;text-align:left}
+.add-btn:hover{opacity:0.8}
+.num-input{width:44px;background:none;border:none;font-size:18px;font-weight:500;color:#1a1a18;font-family:inherit;outline:none;-moz-appearance:textfield}
+.num-input::-webkit-inner-spin-button,.num-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.notes-field{width:100%;border:0.5px solid #d3d1c7;border-radius:6px;padding:6px 8px;font-size:12px;color:#1a1a18;background:#fff;font-family:inherit;resize:vertical;min-height:48px;outline:none}
+.notes-field::placeholder{color:#b4b2a9}
+.export-btn{border:0.5px solid #b4b2a9;background:#fff;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:#1a1a18}
+.export-btn:hover{background:#f1efe8}
+select.status-sel{border:none;background:none;font-size:11px;color:#888780;font-family:inherit;cursor:pointer;outline:none;padding:0}
+.summary-box{background:#fff;border:0.5px solid #d3d1c7;border-radius:12px;padding:1rem 1.25rem;margin-top:16px;white-space:pre-wrap;font-size:13px;color:#1a1a18;display:none}
+h1{font-size:20px;font-weight:500;margin-bottom:4px;color:#1a1a18}
+.page-sub{font-size:13px;color:#888780;margin-bottom:1.5rem}
+</style>
+</head>
+<body>
+<div class="dash">
+
+<h1>Marketing weekly dashboard</h1>
+<p class="page-sub">Track activities and results across offerings, week by week</p>
+
+<div class="week-nav">
+  <div>
+    <div class="week-label">Weekly marketing report</div>
+    <div class="week-display" id="weekDisplay">Week of Mar 24 – Mar 30, 2026</div>
+  </div>
+  <button class="nav-btn" onclick="changeWeek(-1)">← prev</button>
+  <button class="nav-btn" onclick="changeWeek(1)">next →</button>
+  <span id="savedBadge" style="font-size:11px;color:#1D9E75;opacity:0;transition:opacity 0.4s">✓ saved</span>
+  <button class="export-btn" onclick="exportReport()">Export summary ↗</button>
+  <button class="nav-btn" onclick="clearData()" style="color:#993C1D;border-color:#f0997b" title="Clear all data">Clear data</button>
+</div>
+
+<div class="offerings-tabs" id="offeringsTabs"></div>
+<div id="dashContent"></div>
+<div class="summary-box" id="summaryBox"></div>
+
+</div>
+
+<script>
+const OFFERINGS = [
+  {id:'ai', label:'AI & ML', color:'#185FA5'},
+  {id:'cloud', label:'Cloud & DevOps', color:'#0F6E56'},
+  {id:'data', label:'Data Engineering', color:'#993C1D'},
+  {id:'qa', label:'QA & Testing', color:'#533AB7'},
+  {id:'product', label:'Product Dev', color:'#854F0B'},
+];
+
+const ACTIVITIES = [
+  {id:'web', icon:'🌐', title:'Website & content', sub:'Landing pages + blogs', metrics:[{k:'pages',l:'Pages live'},{k:'blogs',l:'Blogs published'},{k:'visits',l:'Weekly visits'}], entryLabel:'Published URLs / topics'},
+  {id:'linkedin_organic', icon:'💼', title:'LinkedIn organic', sub:'Posts featuring key experts', metrics:[{k:'posts',l:'Posts'},{k:'impressions',l:'Impressions'},{k:'engagements',l:'Engagements'}], entryLabel:'Post topics / links'},
+  {id:'linkedin_leadgen', icon:'🎯', title:'LinkedIn lead gen', sub:'Campaigns with CTA to Innovecs', metrics:[{k:'leads',l:'Leads'},{k:'cpl',l:'Cost/lead, $'},{k:'ctr',l:'CTR, %'}], entryLabel:'Campaign names'},
+  {id:'abm', icon:'📧', title:'ABM campaigns', sub:'Email sequences + LinkedIn DMs', metrics:[{k:'contacts',l:'Contacts reached'},{k:'replies',l:'Replies'},{k:'meetings',l:'Meetings booked'}], entryLabel:'ICP accounts targeted'},
+  {id:'events', icon:'🎤', title:'Events & conferences', sub:'Meeting ICPs in person', metrics:[{k:'events',l:'Events'},{k:'meetings',l:'Meetings'},{k:'leads',l:'Leads captured'}], entryLabel:'Event names / locations'},
+  {id:'enablement', icon:'📄', title:'Sales enablement', sub:'Decks, case studies, one-pagers', metrics:[{k:'assets',l:'Assets created'},{k:'used',l:'Used by sales'}], entryLabel:'Asset names / types'},
+  {id:'seo', icon:'🔍', title:'SEO & backlinks', sub:'Organic search growth', metrics:[{k:'kw',l:'Keywords ranking'},{k:'backlinks',l:'New backlinks'}], entryLabel:'Target keywords / domains'},
+  {id:'pr', icon:'📰', title:'PR & media', sub:'Mentions, interviews, bylines', metrics:[{k:'mentions',l:'Mentions'},{k:'reach',l:'Est. reach'}], entryLabel:'Publication / topic'},
+];
+
+const LS_KEY = 'mkt_dashboard_v1';
+
+let currentOffering = 'ai';
+let weekOffset = 0;
+let state = {};
+
+function saveState(){
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify({state, currentOffering, weekOffset}));
+    const badge=document.getElementById('savedBadge');
+    if(badge){badge.style.opacity='1';setTimeout(()=>badge.style.opacity='0',1200);}
+  }catch(e){}
+}
+
+function clearData(){
+  if(!confirm('Clear all dashboard data? This cannot be undone.'))return;
+  localStorage.removeItem(LS_KEY);
+  state={};currentOffering='ai';weekOffset=0;
+  document.getElementById('weekDisplay').textContent=getWeekLabel(0);
+  document.getElementById('summaryBox').style.display='none';
+  renderTabs();renderContent();
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){
+      const saved = JSON.parse(raw);
+      state = saved.state || {};
+      currentOffering = saved.currentOffering || 'ai';
+      weekOffset = saved.weekOffset || 0;
+    }
+  }catch(e){}
+}
+
+function weekKey(off){ return 'w'+off; }
+
+function getState(offering, week, actId){
+  state[offering]=state[offering]||{};
+  state[offering][week]=state[offering][week]||{};
+  state[offering][week][actId]=state[offering][week][actId]||{metrics:{},items:[],notes:''};
+  return state[offering][week][actId];
+}
+
+function getWeekLabel(offset){
+  const d = new Date(2026,2,24);
+  d.setDate(d.getDate()+offset*7);
+  const end = new Date(d); end.setDate(d.getDate()+6);
+  const fmt = dt=>dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return `Week of ${fmt(d)} – ${fmt(end)}, ${end.getFullYear()}`;
+}
+
+function changeWeek(dir){
+  weekOffset+=dir;
+  document.getElementById('weekDisplay').textContent=getWeekLabel(weekOffset);
+  document.getElementById('summaryBox').style.display='none';
+  saveState();
+  renderContent();
+}
+
+function renderTabs(){
+  const el=document.getElementById('offeringsTabs');
+  el.innerHTML=OFFERINGS.map(o=>`<div class="tab${o.id===currentOffering?' active':''}" onclick="selectOffering('${o.id}')" style="${o.id===currentOffering?'background:'+o.color+';border-color:'+o.color+';color:#fff':''}">${o.label}</div>`).join('');
+}
+
+function selectOffering(id){
+  currentOffering=id;
+  document.getElementById('summaryBox').style.display='none';
+  saveState();
+  renderTabs();
+  renderContent();
+}
+
+function renderContent(){
+  const wk=weekKey(weekOffset);
+  const offering=currentOffering;
+  let html='<div class="section-grid">';
+  ACTIVITIES.forEach(act=>{
+    const s=getState(offering,wk,act.id);
+    html+=`<div class="activity-card">
+  <div class="card-header">
+    <div class="card-icon">${act.icon}</div>
+    <div><div class="card-title">${act.title}</div><div class="card-subtitle">${act.sub}</div></div>
+  </div>
+  <div class="metrics-row">`;
+    act.metrics.forEach(m=>{
+      const v=s.metrics[m.k]||0;
+      html+=`<div class="metric">
+    <div class="metric-label">${m.l}</div>
+    <input class="num-input" type="number" min="0" value="${v}" onchange="setMetric('${offering}','${wk}','${act.id}','${m.k}',this.value)" style="width:${m.k.length>3?52:44}px">
+  </div>`;
+    });
+    html+=`</div>
+  <div class="entry-section">
+    <div class="entry-label">${act.entryLabel}</div>
+    <div class="entry-list" id="list-${act.id}">`;
+    (s.items||[]).forEach((item,i)=>{
+      html+=`<div class="entry-item">
+    <span class="status-dot ${item.status||'s-plan'}"></span>
+    <input type="text" value="${item.text||''}" placeholder="Add detail…" onchange="updateItem('${offering}','${wk}','${act.id}',${i},'text',this.value)">
+    <select class="status-sel" onchange="updateItem('${offering}','${wk}','${act.id}',${i},'status',this.value)">
+      <option value="s-plan"${(item.status||'s-plan')==='s-plan'?' selected':''}>Planned</option>
+      <option value="s-progress"${item.status==='s-progress'?' selected':''}>In progress</option>
+      <option value="s-done"${item.status==='s-done'?' selected':''}>Done</option>
+    </select>
+    <span style="cursor:pointer;color:#b4b2a9;font-size:12px" onclick="removeItem('${offering}','${wk}','${act.id}',${i})">✕</span>
+  </div>`;
+    });
+    html+=`</div>
+    <button class="add-btn" onclick="addItem('${offering}','${wk}','${act.id}')">+ Add item</button>
+  </div>
+  <div class="entry-label" style="margin-top:8px">Notes</div>
+  <textarea class="notes-field" placeholder="Notes, blockers, next steps…" onchange="setNotes('${offering}','${wk}','${act.id}',this.value)">${s.notes||''}</textarea>
+</div>`;
+  });
+  html+='</div>';
+  document.getElementById('dashContent').innerHTML=html;
+}
+
+function setMetric(offering,wk,actId,key,val){
+  getState(offering,wk,actId).metrics[key]=parseInt(val)||0;
+  saveState();
+}
+function setNotes(offering,wk,actId,val){
+  getState(offering,wk,actId).notes=val;
+  saveState();
+}
+function addItem(offering,wk,actId){
+  getState(offering,wk,actId).items.push({text:'',status:'s-plan'});
+  saveState();
+  renderContent();
+}
+function removeItem(offering,wk,actId,i){
+  getState(offering,wk,actId).items.splice(i,1);
+  saveState();
+  renderContent();
+}
+function updateItem(offering,wk,actId,i,field,val){
+  getState(offering,wk,actId).items[i][field]=val;
+  saveState();
+  if(field==='status'){
+    const el=document.querySelectorAll(`#list-${actId} .status-dot`)[i];
+    if(el){el.className='status-dot '+val;}
+  }
+}
+
+function exportReport(){
+  const wk=weekKey(weekOffset);
+  const lines=[`MARKETING WEEKLY REPORT — ${getWeekLabel(weekOffset).toUpperCase()}`,``,`Offering: ${OFFERINGS.find(o=>o.id===currentOffering).label}`,``];
+  ACTIVITIES.forEach(act=>{
+    const s=getState(currentOffering,wk,act.id);
+    const hasData=Object.values(s.metrics).some(v=>v>0)||(s.items&&s.items.length>0)||s.notes;
+    if(!hasData)return;
+    lines.push(`${act.icon} ${act.title.toUpperCase()}`);
+    act.metrics.forEach(m=>{if(s.metrics[m.k])lines.push(`  ${m.l}: ${s.metrics[m.k]}`)});
+    if(s.items&&s.items.length){
+      s.items.forEach(it=>{
+        const st=it.status==='s-done'?'[done]':it.status==='s-progress'?'[in progress]':'[planned]';
+        if(it.text)lines.push(`  ${st} ${it.text}`);
+      });
+    }
+    if(s.notes)lines.push(`  Notes: ${s.notes}`);
+    lines.push(``);
+  });
+  const box=document.getElementById('summaryBox');
+  box.textContent=lines.join('\n');
+  box.style.display='block';
+  box.scrollIntoView({behavior:'smooth'});
+}
+
+loadState();
+document.getElementById('weekDisplay').textContent=getWeekLabel(weekOffset);
+renderTabs();
+renderContent();
+</script>
+</body>
+</html>
